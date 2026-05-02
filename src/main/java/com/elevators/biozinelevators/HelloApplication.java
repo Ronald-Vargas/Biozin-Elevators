@@ -1,5 +1,9 @@
 package com.elevators.biozinelevators;
 
+import com.elevators.estructuras.ArbolPisos;
+import com.elevators.estructuras.Cola;
+import com.elevators.estructuras.GrafoEdificio;
+import com.elevators.estructuras.Pila;
 import com.elevators.modelo.Ascensor;
 import com.elevators.modelo.Direccion;
 import com.elevators.modelo.Edificio;
@@ -37,7 +41,42 @@ public class HelloApplication extends Application {
         System.out.println(s1);
         System.out.println(s2);
 
-        System.out.println("\n========================\n");
+
+        System.out.println("=== Prueba de estructuras ===");
+
+        // Cola
+        Cola<String> cola = new Cola<>(5);
+        cola.encolar("Solicitud A");
+        cola.encolar("Solicitud B");
+        cola.encolar("Solicitud C");
+        System.out.println("Cola: " + cola);
+        System.out.println("Desencolar: " + cola.desencolar());
+        System.out.println("Cola luego: " + cola);
+
+        // Pila
+        Pila<String> pila = new Pila<>(10);
+        pila.apilar("Piso 5");
+        pila.apilar("Piso 12");
+        pila.apilar("Piso 20");
+        System.out.println("\nPila: " + pila);
+        System.out.println("Desapilar: " + pila.desapilar());
+        System.out.println("Pila luego: " + pila);
+
+        // Árbol
+        ArbolPisos arbol = ArbolPisos.crearParaEdificio(25);
+        System.out.println("\nÁrbol contiene piso 15: " + arbol.contiene(15));
+        System.out.println("Piso 1 restringido: " + arbol.esRestringido(1));
+        System.out.println("Etiqueta piso 1: " + arbol.getEtiqueta(1));
+        System.out.println("Etiqueta piso 25: " + arbol.getEtiqueta(25));
+
+        // Grafo
+        GrafoEdificio grafo = GrafoEdificio.crearParaEdificio(25);
+        System.out.println("\nGrafo distancia piso 3 → piso 18: "
+                + grafo.distanciaMinima(3, 18) + " pisos");
+        System.out.println("Ruta piso 1 → piso 5: "
+                + grafo.rutaCompleta(1, 5));
+
+        System.out.println("============================\n");
 
 
 
