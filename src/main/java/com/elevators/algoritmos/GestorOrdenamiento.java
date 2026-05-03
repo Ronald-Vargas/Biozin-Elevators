@@ -30,21 +30,24 @@ public class GestorOrdenamiento {
     public static void ordenarCola(Cola<Solicitud> cola, String algoritmo) {
         if (cola == null || cola.estaVacia()) return;
 
-        // 1. Extraer como arreglo
-        Solicitud[] solicitudes = cola.toArray();
+        // 1. Extraer como Object[] y copiar a Solicitud[] elemento por elemento
+        Object[] objArray = cola.toArray();
+        Solicitud[] solicitudes = new Solicitud[objArray.length];
+        for (int i = 0; i < objArray.length; i++) {
+            solicitudes[i] = (Solicitud) objArray[i];
+        }
 
         // 2. Aplicar el algoritmo correspondiente
         switch (algoritmo) {
             case QUICKSORT  -> Quicksort.ordenar(solicitudes);
             case MERGESORT  -> Mergesort.ordenar(solicitudes);
             case HEAPSORT   -> Heapsort.ordenar(solicitudes);
-            default         -> Quicksort.ordenar(solicitudes); // fallback
+            default         -> Quicksort.ordenar(solicitudes);
         }
 
         // 3. Reconstruir la cola con el nuevo orden
         cola.reconstruirDesdeArray(solicitudes);
     }
-
     /**
      * Calcula la prioridad de una solicitud según la posición del ascensor.
      * A menor distancia, mayor prioridad (número más bajo).

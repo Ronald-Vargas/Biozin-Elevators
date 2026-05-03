@@ -87,8 +87,8 @@ public class Cola<T> {
      * No modifica la cola.
      */
     @SuppressWarnings("unchecked")
-    public synchronized T[] toArray() {
-        T[] array = (T[]) new Object[tamanio];
+    public synchronized Object[] toArray() {
+        Object[] array = new Object[tamanio];
         Nodo<T> actual = frente;
         int i = 0;
         while (actual != null) {
@@ -101,12 +101,14 @@ public class Cola<T> {
     /**
      * Reconstruye la cola a partir de un array (después de ordenar).
      */
-    public synchronized void reconstruirDesdeArray(T[] array) {
+    public synchronized void reconstruirDesdeArray(Object[] array) {
         frente = null;
         final_ = null;
         tamanio = 0;
-        for (T dato : array) {
-            encolar(dato);
+        for (Object dato : array) {
+            @SuppressWarnings("unchecked")
+            T elemento = (T) dato;
+            encolar(elemento);
         }
     }
 

@@ -70,8 +70,8 @@ public class Pila<T> {
      * Se usa para mostrar el historial en la UI.
      */
     @SuppressWarnings("unchecked")
-    public synchronized T[] toArray() {
-        T[] array = (T[]) new Object[tamanio];
+    public synchronized Object[] toArray() {
+        Object[] array = new Object[tamanio];
         Nodo<T> actual = tope;
         int i = 0;
         while (actual != null) {
