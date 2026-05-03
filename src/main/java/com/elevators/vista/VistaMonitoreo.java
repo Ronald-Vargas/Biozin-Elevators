@@ -722,8 +722,7 @@ public class VistaMonitoreo {
 
         int totalActivas = 0;
         for (Edificio edificio : controlador.getEdificios()) {
-            Cola<Solicitud> cola = controlador.getCola(edificio.getId());
-            int tamanio = cola != null ? cola.getTamanio() : 0;
+            int tamanio = controlador.getTamanioColaEdificio(edificio.getId());
             totalActivas += tamanio;
 
             HBox fila = construirFilaInfo(
@@ -798,10 +797,8 @@ public class VistaMonitoreo {
         );
 
         int totalSolicitudes = controlador.getEdificios().stream()
-                .mapToInt(e -> {
-                    Cola<Solicitud> c = controlador.getCola(e.getId());
-                    return c != null ? c.getTamanio() : 0;
-                }).sum();
+                .mapToInt(e -> controlador.getTamanioColaEdificio(e.getId()))
+                .sum();
 
         long inactivos = controlador.getEdificios().stream()
                 .flatMap(e -> e.getAscensores().stream())

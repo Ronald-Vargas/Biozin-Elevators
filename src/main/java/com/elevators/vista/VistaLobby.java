@@ -218,7 +218,7 @@ public class VistaLobby {
         );
 
         // Meta
-        int colaSize = controlador.getCola(edificio.getId()).getTamanio();
+        int colaSize = controlador.getTamanioColaEdificio(edificio.getId());
         Label meta = new Label(
                 TOTAL_PISOS + " pisos    3 ascensores    Cola: " + colaSize + "/20"
         );

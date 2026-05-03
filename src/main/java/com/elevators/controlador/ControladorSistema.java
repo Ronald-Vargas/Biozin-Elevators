@@ -43,8 +43,8 @@ public class ControladorSistema {
     // ===== Datos del sistema =====
     private final List<Edificio> edificios;
 
-    // Una cola de solicitudes por edificio (clave = id del edificio)
-    private final Map<Integer, Cola<Solicitud>> colas;
+    // Una cola de solicitudes por ascensor (clave = id del ascensor "A1", "B2", etc.)
+    private final Map<String, Cola<Solicitud>> colasAscensor;
 
     // Una pila de historial por ascensor (clave = id del ascensor "A1", "B2", etc.)
     private final Map<String, Pila<String>> historiales;
@@ -74,12 +74,12 @@ public class ControladorSistema {
 
     // ===== Constructor privado (Singleton) =====
     private ControladorSistema() {
-        edificios  = new ArrayList<>();
-        colas      = new HashMap<>();
-        historiales = new HashMap<>();
-        arboles    = new HashMap<>();
-        grafos     = new HashMap<>();
-        hilos      = new ArrayList<>();
+        edificios     = new ArrayList<>();
+        colasAscensor = new HashMap<>();
+        historiales   = new HashMap<>();
+        arboles       = new HashMap<>();
+        grafos        = new HashMap<>();
+        hilos         = new ArrayList<>();
         inicializar();
     }
 
@@ -94,23 +94,24 @@ public class ControladorSistema {
             Edificio edificio = new Edificio(i, nombres[i - 1]);
             edificios.add(edificio);
 
-            // Cola de solicitudes (máx 20 por requisito del proyecto)
-            colas.put(i, new Cola<>(Edificio.CAPACIDAD_MAXIMA_SOLICITUDES));
-
             // Árbol de pisos balanceado
             arboles.put(i, ArbolPisos.crearParaEdificio(Edificio.TOTAL_PISOS));
 
             // Grafo del edificio
             grafos.put(i, GrafoEdificio.crearParaEdificio(Edificio.TOTAL_PISOS));
 
-            // Un hilo por ascensor
+            // Un hilo por ascensor, cada uno con su propia cola
             for (Ascensor ascensor : edificio.getAscensores()) {
+                // Cola exclusiva del ascensor (máx 20 por requisito del proyecto)
+                Cola<Solicitud> cola = new Cola<>(Edificio.CAPACIDAD_MAXIMA_SOLICITUDES);
+                colasAscensor.put(ascensor.getId(), cola);
+
                 Pila<String> historial = new Pila<>(50);
                 historiales.put(ascensor.getId(), historial);
 
                 HiloAscensor hilo = new HiloAscensor(
                         ascensor,
-                        colas.get(i),
+                        cola,
                         historial,
                         this,
                         intervaloMs
@@ -158,14 +159,18 @@ public class ControladorSistema {
     }
 
     /**
-     * Vacía la cola de un edificio específico.
+     * Vacía las colas de todos los ascensores de un edificio específico.
      */
     public void destruirSolicitudes(int edificioId) {
-        Cola<Solicitud> cola = colas.get(edificioId);
-        if (cola != null) {
-            while (!cola.estaVacia()) cola.desencolar();
-            notificarColaCambio(edificioId);
+        Edificio edificio = getEdificio(edificioId);
+        if (edificio == null) return;
+        for (Ascensor ascensor : edificio.getAscensores()) {
+            Cola<Solicitud> cola = colasAscensor.get(ascensor.getId());
+            if (cola != null) {
+                while (!cola.estaVacia()) cola.desencolar();
+            }
         }
+        notificarColaCambio(edificioId);
     }
 
     /**
@@ -179,35 +184,36 @@ public class ControladorSistema {
 
     /**
      * Registra una nueva solicitud desde el lobby (vista pasajero).
-     * Asigna el ascensor más adecuado y encola la solicitud.
+     * Asigna el ascensor más adecuado y encola la solicitud en su cola exclusiva.
      *
-     * @return el ascensor asignado, o null si la cola está llena
+     * @return el ascensor asignado, o null si el edificio está al máximo de capacidad
      */
     public Ascensor registrarSolicitud(int edificioId,
                                        int pisoOrigen,
                                        int pisoDestino,
                                        Direccion direccion) {
-        Cola<Solicitud> cola = colas.get(edificioId);
-        if (cola == null || cola.estaLlena()) return null;
+        Edificio edificio = getEdificio(edificioId);
+        if (edificio == null) return null;
 
-        Solicitud solicitud = new Solicitud(edificioId, pisoOrigen,
-                pisoDestino, direccion);
+        // Verificar capacidad total del edificio (máx 20 solicitudes en total)
+        if (getTamanioColaEdificio(edificioId) >= Edificio.CAPACIDAD_MAXIMA_SOLICITUDES) return null;
+
+        Solicitud solicitud = new Solicitud(edificioId, pisoOrigen, pisoDestino, direccion);
 
         // Seleccionar el mejor ascensor
-        Edificio edificio = getEdificio(edificioId);
-        Ascensor asignado = AsignadorAscensor.seleccionar(
-                edificio.getAscensores(), solicitud);
+        Ascensor asignado = AsignadorAscensor.seleccionar(edificio.getAscensores(), solicitud);
+        if (asignado == null) return null;
 
-        if (asignado != null) {
-            // Calcular prioridad según distancia del ascensor asignado
-            GestorOrdenamiento.calcularPrioridad(solicitud, asignado.getPisoActual());
-        }
+        // Calcular prioridad según distancia del ascensor asignado
+        GestorOrdenamiento.calcularPrioridad(solicitud, asignado.getPisoActual());
 
-        // Encolar
-        cola.encolar(solicitud);
+        // Encolar en la cola exclusiva del ascensor asignado
+        Cola<Solicitud> colaAsignado = colasAscensor.get(asignado.getId());
+        if (colaAsignado == null) return null;
+        colaAsignado.encolar(solicitud);
 
-        // Re-ordenar la cola con el algoritmo del edificio
-        GestorOrdenamiento.ordenarCola(cola, edificio.getTipoOrdenamiento());
+        // Re-ordenar la cola del ascensor asignado
+        GestorOrdenamiento.ordenarCola(colaAsignado, edificio.getTipoOrdenamiento());
 
         notificarColaCambio(edificioId);
         return asignado;
@@ -224,13 +230,46 @@ public class ControladorSistema {
     }
 
     /**
-     * Cambia el algoritmo de ordenamiento de un edificio y re-ordena su cola.
+     * Registra una solicitud directamente en la cola del ascensor especificado.
+     * Usado desde VistaAscensor cuando el pasajero selecciona el piso destino.
+     */
+    public void registrarSolicitudParaAscensor(String ascensorId,
+                                               int pisoOrigen,
+                                               int pisoDestino,
+                                               Direccion direccion) {
+        Cola<Solicitud> cola = colasAscensor.get(ascensorId);
+        if (cola == null || cola.estaLlena()) return;
+
+        // Buscar edificioId desde el ascensor
+        int edificioId = -1;
+        for (Edificio e : edificios) {
+            for (Ascensor a : e.getAscensores()) {
+                if (a.getId().equals(ascensorId)) {
+                    edificioId = e.getId();
+                    break;
+                }
+            }
+            if (edificioId != -1) break;
+        }
+
+        Solicitud solicitud = new Solicitud(edificioId, pisoOrigen, pisoDestino, direccion);
+        cola.encolar(solicitud);
+        notificarColaCambio(edificioId);
+    }
+
+    /**
+     * Cambia el algoritmo de ordenamiento de un edificio y re-ordena las colas de sus ascensores.
      */
     public void setAlgoritmoEdificio(int edificioId, String algoritmo) {
         Edificio edificio = getEdificio(edificioId);
         if (edificio != null) {
             edificio.setTipoOrdenamiento(algoritmo);
-            GestorOrdenamiento.ordenarCola(colas.get(edificioId), algoritmo);
+            for (Ascensor ascensor : edificio.getAscensores()) {
+                Cola<Solicitud> cola = colasAscensor.get(ascensor.getId());
+                if (cola != null) {
+                    GestorOrdenamiento.ordenarCola(cola, algoritmo);
+                }
+            }
             notificarColaCambio(edificioId);
         }
     }
@@ -291,8 +330,21 @@ public class ControladorSistema {
                 .findFirst().orElse(null);
     }
 
-    public Cola<Solicitud> getCola(int edificioId) {
-        return colas.get(edificioId);
+    /**
+     * Retorna el total de solicitudes pendientes en los 3 ascensores de un edificio.
+     */
+    public int getTamanioColaEdificio(int edificioId) {
+        Edificio edificio = getEdificio(edificioId);
+        if (edificio == null) return 0;
+        return edificio.getAscensores().stream()
+                .mapToInt(a -> {
+                    Cola<Solicitud> c = colasAscensor.get(a.getId());
+                    return c != null ? c.getTamanio() : 0;
+                }).sum();
+    }
+
+    public Cola<Solicitud> getCola(String ascensorId) {
+        return colasAscensor.get(ascensorId);
     }
 
     public Pila<String> getHistorial(String ascensorId) {

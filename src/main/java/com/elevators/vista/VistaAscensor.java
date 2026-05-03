@@ -378,10 +378,9 @@ public class VistaAscensor {
             }
         }
 
-        // Crear solicitud en el sistema (esto va a la cola del edificio
-        // y los hilos se encargan del movimiento real)
+        // Encolar directamente en este ascensor para garantizar que él sea quien se mueva
         Direccion dir = destino > pisoOrigen ? Direccion.SUBIR : Direccion.BAJAR;
-        controlador.registrarSolicitud(edificioId, pisoOrigen, destino, dir);
+        controlador.registrarSolicitudParaAscensor(ascensorId, pisoOrigen, destino, dir);
 
         cabinStatus.setText("Solicitud creada - cerrando puertas...");
     }
