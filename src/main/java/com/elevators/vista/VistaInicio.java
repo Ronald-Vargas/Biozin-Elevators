@@ -8,8 +8,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
 /**
@@ -44,21 +45,11 @@ public class VistaInicio {
         VBox header = new VBox(8);
         header.setAlignment(Pos.CENTER);
 
-        // Ícono decorativo
-        Rectangle icono = new Rectangle(48, 48);
-        icono.setArcWidth(12);
-        icono.setArcHeight(12);
-        icono.setStyle(
-                "-fx-fill: linear-gradient(to bottom right, #6366f1, #818cf8);"
-        );
-
-        Label titulo = new Label("Manejo de Ascensores");
-        titulo.setStyle(
-                "-fx-font-size: 36px;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-text-fill: #e8ecf1;" +
-                        "-fx-font-family: 'Segoe UI';"
-        );
+        Image logo = new Image(getClass().getResourceAsStream("/Biozin-Elevators-Logo.png"));
+        ImageView icono = new ImageView(logo);
+        icono.setFitWidth(350);
+        icono.setFitHeight(350);
+        icono.setPreserveRatio(true);
 
         Label subtitulo = new Label(
                 "Selecciona en qué modo deseas ingresar al sistema"
@@ -68,7 +59,7 @@ public class VistaInicio {
                         "-fx-text-fill: #8b95a3;"
         );
 
-        header.getChildren().addAll(icono, titulo, subtitulo);
+        header.getChildren().addAll(icono, subtitulo);
         return header;
     }
 

@@ -98,6 +98,7 @@ public class VistaMonitoreo {
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.setPadding(new Insets(14, 20, 14, 20));
         bar.setStyle(Estilos.ESTILO_PANEL);
+        bar.setSpacing(16);
 
         Button btnVolver = new Button("<- Inicio");
         btnVolver.setStyle(

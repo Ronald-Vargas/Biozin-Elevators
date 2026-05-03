@@ -44,7 +44,7 @@ public class VistaPrincipal {
     }
 
     public void mostrar() {
-        stage.setTitle("Sistema Inteligente de Ascensores");
+        stage.setTitle("Biozin Elevators");
         stage.setScene(scene);
         stage.setMinWidth(1100);
         stage.setMinHeight(700);
